@@ -1,0 +1,28 @@
+{
+  "name": "langchain-code-reviewer",
+  "version": "1.0.0",
+  "description": "AI-powered code review tool that works as a LangChain Tool",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.23.0",
+    "axios": "^1.16.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@langchain/core": "^0.2.36",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.19.19",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "test": "jest",
+    "prepublishOnly": "npm run build"
+  }
+}
