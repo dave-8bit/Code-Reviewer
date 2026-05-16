@@ -1,0 +1,110 @@
+import Anthropic from "@anthropic-ai/sdk";
+
+import type {
+  CodeIssue,
+  CodeReviewInput,
+  CodeReviewResult,
+} from "../types/review";
+
+function normalizeParsedReview(raw: any, language: string): CodeReviewResult {
+  const issues: CodeIssue[] = Array.isArray(raw?.issues)
+    ? raw.issues.map((i: any) => ({
+        line: i?.line ?? null,
+        severity: i?.severity,
+        category: i?.category,
+        message: i?.message,
+        suggestion: i?.suggestion,
+      }))
+    : [];
+
+  const strengths: string[] = Array.isArray(raw?.strengths) ? raw.strengths : [];
+
+  const qualityScore = Number(raw?.qualityScore);
+
+  return {
+    language,
+    qualityScore: Number.isFinite(qualityScore) ? qualityScore : 0,
+    summary: String(raw?.summary ?? ""),
+    issues,
+    strengths: strengths.map(String),
+    timestamp: new Date(),
+  };
+}
+
+export async function reviewCode(input: CodeReviewInput): Promise<CodeReviewResult> {
+  try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        "Missing environment variable ANTHROPIC_API_KEY. Set it to your Anthropic API key.",
+      );
+    }
+
+    const client = new Anthropic({ apiKey });
+
+    const focus = input.focus ?? "all";
+
+    const prompt = [
+      "You are an expert software engineer and code reviewer.",
+      `Review the following code for ${focus}.`,
+      "Return ONLY valid JSON matching this exact shape:",
+      "{",
+      '  "qualityScore": 8,',
+      '  "summary": "Overall summary here",',
+      '  "issues": [',
+      "    {",
+      '      "line": 12,',
+      '      "severity": "critical",',
+      '      "category": "bug",',
+      '      "message": "Issue description",',
+      '      "suggestion": "How to fix it"',
+      "    }",
+      "  ],",
+      '  "strengths": ["strength 1", "strength 2"]',
+      "}",
+      "Code:",
+      "```",
+      input.code,
+      "```",
+      `Language: ${input.language}`,
+      "Focus: "+focus,
+    ].join("\n");
+
+    const message = await client.messages.create({
+      model: "claude-opus-4-5",
+      max_tokens: 1500,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+
+    const text = (message?.content?.[0] as any)?.text ?? "";
+
+    // Extract JSON if the model includes extra text.
+    const jsonMatch = String(text).match(/\{[\s\S]*\}/);
+    const jsonText = jsonMatch ? jsonMatch[0] : text;
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch {
+      throw new Error(`Failed to parse Anthropic response as JSON. Response was: ${text}`);
+    }
+
+    const result = normalizeParsedReview(parsed, input.language);
+
+    // Clamp quality score to 1-10 if the model provides out-of-range values.
+    if (Number.isFinite(result.qualityScore)) {
+      result.qualityScore = Math.min(10, Math.max(1, result.qualityScore));
+    }
+
+    return result;
+  } catch (err: any) {
+    const msg = err?.message ?? String(err);
+    throw new Error(`reviewCode failed: ${msg}`);
+  }
+}
+
