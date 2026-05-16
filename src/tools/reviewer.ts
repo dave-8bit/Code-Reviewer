@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 
 import type {
   CodeIssue,
@@ -33,14 +33,14 @@ function normalizeParsedReview(raw: any, language: string): CodeReviewResult {
 
 export async function reviewCode(input: CodeReviewInput): Promise<CodeReviewResult> {
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       throw new Error(
-        "Missing environment variable ANTHROPIC_API_KEY. Set it to your Anthropic API key.",
+        "Missing environment variable GROQ_API_KEY. Set it to your Groq API key.",
       );
     }
 
-    const client = new Anthropic({ apiKey });
+    const client = new Groq({ apiKey });
 
     const focus = input.focus ?? "all";
 
@@ -67,21 +67,16 @@ export async function reviewCode(input: CodeReviewInput): Promise<CodeReviewResu
       input.code,
       "```",
       `Language: ${input.language}`,
-      "Focus: "+focus,
+      "Focus: " + focus,
     ].join("\n");
 
-    const message = await client.messages.create({
-      model: "claude-opus-4-5",
+    const response = await client.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
       max_tokens: 1500,
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
+      messages: [{ role: "user", content: prompt }],
     });
 
-    const text = (message?.content?.[0] as any)?.text ?? "";
+    const text = response?.choices?.[0]?.message?.content ?? "";
 
     // Extract JSON if the model includes extra text.
     const jsonMatch = String(text).match(/\{[\s\S]*\}/);
@@ -91,7 +86,7 @@ export async function reviewCode(input: CodeReviewInput): Promise<CodeReviewResu
     try {
       parsed = JSON.parse(jsonText);
     } catch {
-      throw new Error(`Failed to parse Anthropic response as JSON. Response was: ${text}`);
+      throw new Error(`Failed to parse Groq response as JSON. Response was: ${text}`);
     }
 
     const result = normalizeParsedReview(parsed, input.language);
