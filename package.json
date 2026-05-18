@@ -1,15 +1,32 @@
 {
   "name": "langchain-code-reviewer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AI-powered code review tool that works as a LangChain Tool",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com"
+  },
+  "keywords": [
+    "langchain",
+    "langchain-tool",
+    "ai-agent",
+    "groq",
+    "llama3",
+    "code-review",
+    "static-analysis",
+    "agentic-workflow"
+  ],
   "dependencies": {
     "@anthropic-ai/sdk": "^0.23.0",
     "axios": "^1.16.1",
     "groq-sdk": "^1.2.0",
     "zod": "^3.25.76"
+  },
+  "peerDependencies": {
+    "@langchain/core": "^0.2.36"
   },
   "devDependencies": {
     "@langchain/core": "^0.2.36",
