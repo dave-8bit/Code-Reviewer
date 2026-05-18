@@ -1,6 +1,6 @@
 {
   "name": "langchain-code-reviewer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "AI-powered code review tool that works as a LangChain Tool",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
