@@ -4,6 +4,9 @@
   "description": "AI-powered code review tool that works as a LangChain Tool, powered by Groq.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "coderev": "./dist/cli.js"
+  },
   "license": "MIT",
   "author": "David Chinwenmeri",
   "repository": {
@@ -27,6 +30,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.23.0",
     "axios": "^1.16.1",
+    "commander": "^12.1.0",
     "groq-sdk": "^1.2.0",
     "langchain-code-reviewer": "^1.0.3",
     "zod": "^3.25.76"

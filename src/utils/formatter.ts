@@ -18,18 +18,17 @@ export function formatIssue(issue: CodeIssue): string {
   const linePart =
     issue.line === null || issue.line === undefined ? "" : `:${issue.line}`;
 
-  const confidencePart = `- Confidence: ${issue.confidence}/100\n`;
-  const fixedCodePart =
+  const fixedCodeSection =
     issue.fixedCode !== null && issue.fixedCode !== undefined
-      ? `- Fixed code: ${issue.fixedCode}`
-      : `- Fixed code: (not provided)`;
+      ? `- Fixed Code:\n\`${issue.fixedCode}\``
+      : `- Fixed Code: (not provided)`;
 
   return (
     `${getSeverityEmoji(issue.severity)} ${severity} [${issue.category}]${linePart}\n` +
     `- Message: ${issue.message}\n` +
+    `- Confidence: ${issue.confidence}%\n` +
     `- Suggestion: ${issue.suggestion}\n` +
-    confidencePart +
-    fixedCodePart
+    fixedCodeSection
   );
 }
 
