@@ -2,6 +2,7 @@ import { Tool } from "@langchain/core/tools";
 
 import { reviewCode } from "./reviewer";
 import { formatReviewResult } from "../utils/formatter";
+
 import type { CodeReviewInput, CodeReviewResult } from "../types/review";
 
 export class CodeReviewTool extends Tool {
@@ -29,7 +30,11 @@ export class CodeReviewTool extends Tool {
       }
 
       const result: CodeReviewResult = await reviewCode(reviewInput);
-      return formatReviewResult(result);
+
+      const outputFormat = reviewInput.outputFormat ?? "text";
+      return outputFormat === "json"
+        ? JSON.stringify(result, null, 2)
+        : formatReviewResult(result);
     } catch (err: any) {
       const msg = err?.message ? String(err.message) : String(err);
       return `Code review failed: ${msg}`;

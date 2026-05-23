@@ -8,13 +8,20 @@ import type {
 
 function normalizeParsedReview(raw: any, language: string): CodeReviewResult {
   const issues: CodeIssue[] = Array.isArray(raw?.issues)
-    ? raw.issues.map((i: any) => ({
-        line: i?.line ?? null,
-        severity: i?.severity,
-        category: i?.category,
-        message: i?.message,
-        suggestion: i?.suggestion,
-      }))
+    ? raw.issues.map((i: any) => {
+        const confidence = typeof i?.confidence === "number" ? i.confidence : 0;
+        const fixedCode = typeof i?.fixedCode === "string" ? i.fixedCode : null;
+
+        return {
+          line: i?.line ?? null,
+          severity: i?.severity,
+          category: i?.category,
+          message: i?.message,
+          suggestion: i?.suggestion,
+          confidence: Number.isFinite(confidence) ? confidence : 0,
+          fixedCode,
+        };
+      })
     : [];
 
   const strengths: string[] = Array.isArray(raw?.strengths) ? raw.strengths : [];
@@ -43,6 +50,7 @@ export async function reviewCode(input: CodeReviewInput): Promise<CodeReviewResu
     const client = new Groq({ apiKey });
 
     const focus = input.focus ?? "all";
+    const outputFormat = input.outputFormat ?? "text";
 
     const prompt = [
       "You are an expert software engineer and code reviewer.",
@@ -57,7 +65,9 @@ export async function reviewCode(input: CodeReviewInput): Promise<CodeReviewResu
       '      "severity": "critical",',
       '      "category": "bug",',
       '      "message": "Issue description",',
-      '      "suggestion": "How to fix it"',
+      '      "suggestion": "How to fix it",',
+      '      "confidence": 85,',
+      '      "fixedCode": "// corrected snippet here"',
       "    }",
       "  ],",
       '  "strengths": ["strength 1", "strength 2"]',
@@ -68,6 +78,7 @@ export async function reviewCode(input: CodeReviewInput): Promise<CodeReviewResu
       "```",
       `Language: ${input.language}`,
       "Focus: " + focus,
+      `Output format preference: ${outputFormat}`,
     ].join("\n");
 
     const response = await client.chat.completions.create({
@@ -86,10 +97,20 @@ export async function reviewCode(input: CodeReviewInput): Promise<CodeReviewResu
     try {
       parsed = JSON.parse(jsonText);
     } catch {
-      throw new Error(`Failed to parse Groq response as JSON. Response was: ${text}`);
+      throw new Error(
+        `Failed to parse Groq response as JSON. Response was: ${text}`,
+      );
     }
 
     const result = normalizeParsedReview(parsed, input.language);
+
+    // Clamp confidence to 0-100 if the model provides out-of-range values.
+    result.issues = result.issues.map((issue) => {
+      const confidence = Number.isFinite(issue.confidence)
+        ? Math.min(100, Math.max(0, issue.confidence))
+        : 0;
+      return { ...issue, confidence };
+    });
 
     // Clamp quality score to 1-10 if the model provides out-of-range values.
     if (Number.isFinite(result.qualityScore)) {

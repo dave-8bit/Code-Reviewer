@@ -15,15 +15,29 @@ export function getSeverityEmoji(severity: string): string {
 
 export function formatIssue(issue: CodeIssue): string {
   const severity = issue.severity.toUpperCase();
-  const linePart = issue.line === null || issue.line === undefined ? "" : `:${issue.line}`;
+  const linePart =
+    issue.line === null || issue.line === undefined ? "" : `:${issue.line}`;
 
-  return `${getSeverityEmoji(issue.severity)} ${severity} [${issue.category}]${linePart}\n` +
+  const confidencePart = `- Confidence: ${issue.confidence}/100\n`;
+  const fixedCodePart =
+    issue.fixedCode !== null && issue.fixedCode !== undefined
+      ? `- Fixed code: ${issue.fixedCode}`
+      : `- Fixed code: (not provided)`;
+
+  return (
+    `${getSeverityEmoji(issue.severity)} ${severity} [${issue.category}]${linePart}\n` +
     `- Message: ${issue.message}\n` +
-    `- Suggestion: ${issue.suggestion}`;
+    `- Suggestion: ${issue.suggestion}\n` +
+    confidencePart +
+    fixedCodePart
+  );
 }
 
 export function formatReviewResult(result: CodeReviewResult): string {
-  const timestamp = result.timestamp instanceof Date ? result.timestamp.toISOString() : new Date(result.timestamp).toISOString();
+  const timestamp =
+    result.timestamp instanceof Date
+      ? result.timestamp.toISOString()
+      : new Date(result.timestamp).toISOString();
 
   const issuesSection = result.issues.length
     ? result.issues.map((i) => formatIssue(i)).join("\n\n")
